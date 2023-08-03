@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Travel Info</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBj_JgUi97U0czCWUO6OccZxQahvBJe9Oo&libraries=places"></script>
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+
+        #user-info {
+            display: none;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .logo-container img {
+            height: 200px; /* Adjust the height as needed */
+            margin-right: 10px; /* Adjust the spacing as needed */
+        }
+    </style>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body>
+    <div class="logo-container">
+        <img src="log.png" alt="Logo">
+        <a href="/auth/google" style="font-size: 30px;">Login with Google</a>
+    </div>
+    <div id="user-info">
+        <p id="user-name"></p>
+        <p id="user-email"></p>
+    </div>
+    <div id="map"></div>
+
+    <input id="city" type="text" placeholder="Enter city name">
+    <select id="preference">
+        <option value="bar">Bar</option>
+        <option value="cafe">Cafe</option>
+        <option value="casino">Casino</option>
+        <option value="museum">Museum</option>
+        <option value="park">Park</option>
+        <option value="restaurant">Restaurant</option>
+        <option value="shopping_mall">Shopping Mall</option>
+        <option value="supermarket">Supermarket</option>
+    </select>
+    <label for="dateAhead">Date:</label>
+    <input id="dateAhead" type="date" min="" />
+
+    <button onclick="searchPlace()">Search</button>
+
+    <div id="output">
+        <div id="weather"></div>
+        <ul id="places"></ul>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        window.onload = function () {
+            fetch('/user')
+                .then(response => response.json())
+                .then(user => {
+                    if (user.name) {
+                        document.getElementById('user-name').textContent = 'Signed in: ' + user.name;
+                        document.getElementById('user-email').textContent = 'Email: ' + user.email;
+                        document.getElementById('user-info').style.display = 'block';
+                    }
+                });
+
+            searchPlace(); // Call the function to trigger the search when the page loads
+        }
+
+        var apiKey = "98e68699085dbddbfb65f34ceb0906d8";
+        var map;
+        var service;
+        var infowindow;
+        var markers = [];
+        var city;
+
+        function initialize() {
+            infowindow = new google.maps.InfoWindow(); // Create an instance of InfoWindow
+
+            var pyrmont = new google.maps.LatLng(42.3601, -71.0589);
+
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: pyrmont,
+                zoom: 15
+            });
+
+            var request = {
+                location: pyrmont,
+                radius: '500',
+                types: ['store']
+            };
+
+            service = new google.maps.places.PlacesService(map);
+            service.nearbySearch(request, callback);
+        }
+
+        function callback(results, status) {
+            if (status == google.maps.places.PlacesServiceStatus.OK) {
+                for (var i = 0; i < results.length; i++) {
+                    var place = results[i];
+                    createMarker(place);
+                    addToList(place);
+                }
+            }
+        }
+
+        function createMarker(place) {
+            var marker = new google.maps.Marker({
+                map: map,
+                position: place.geometry.location
+            });
+
+            google.maps.event.addListener(marker, 'click', function () {
+                infowindow.setContent('<div><strong>' + place.name + '</strong><br>' +
+                    'Place ID: ' + place.place_id + '<br>' +
+                    place.vicinity + '</div>');
+                infowindow.open(map, this);
+            });
+
+            markers.push(marker);
+        }
+
+        function addToList(place) {
+            service.getDetails({ placeId: place.place_id }, function (result, status) {
+                if (status == google.maps.places.PlacesServiceStatus.OK) {
+                    var ul = document.getElementById("places");
+                    var li = document.createElement("li");
+                    var text = document.createTextNode(
+                        result.name + ' - Rating: ' + (result.rating || 'No rating') + ' - Address: ' + (result.vicinity || 'No address'));
+                    li.appendChild(text);
+
+                    if (result.website) {
+                        var website = document.createElement("a");
+                        website.href = result.website;
+                        website.textContent = " Website";
+                        li.appendChild(website);
+                    }
+
+                    li.onclick = function () { displayPlaceDetails(result); }; // Adding an onclick event to the list item
+                    ul.appendChild(li);
+                }
+            });
+        }
+
+        function displayPlaceDetails(place) {
+            var details = `Name: ${place.name}\nAddress: ${place.formatted_address}\nRating: ${place.rating}`;
+            if (place.opening_hours) {
+                details += `\nOpen Now: ${place.opening_hours.open_now ? 'Yes' : 'No'}`;
+            }
+            if (place.website) {
+                details += `\nWebsite: ${place.website}`;
+            }
+            alert(details);
+        }
+
+        async function searchPlace() {
+            try {
+                const city = document.getElementById('city').value;
+                const preference = document.getElementById('preference').value;
+
+                const geocoder = new google.maps.Geocoder();
+                const geocodeResult = await new Promise((resolve, reject) => {
+                    geocoder.geocode({ 'address': city }, (results, status) => {
+                        if (status === 'OK') {
+                            resolve(results);
+                        } else {
+                            reject(new Error('Geocode was not successful for the following reason: ' + status));
+                        }
+                    });
+                });
+
+                const location = geocodeResult[0].geometry.location;
+                map.setCenter(location);
+
+                const ul = document.getElementById("places");
+                ul.innerHTML = '';
+                markers.forEach(marker => marker.setMap(null));
+                markers = [];
+
+                const request = {
+                    location: location,
+                    radius: '500',
+                    types: [preference]
+                };
+
+                await fetchWeather(city);
+
+                service.nearbySearch(request, callback);
+            } catch (error) {
+                console.error(error);
+                // Handle the error here and provide appropriate feedback to the user
+            }
+        }
+
+        function fetchWeather(city) {
+            return new Promise(function (resolve, reject) {
+                var limit = "1";
+                var dateAhead = new Date($("#dateAhead").val());
+                var today = new Date();
+                var diffTime = Math.abs(dateAhead - today);
+                var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                $.ajax({
+                    method: "GET",
+                    url: `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}`,
+                }).done(function (data) {
+                    if (data.weather && data.weather.length > 0) {
+                        var tempK = data.main.temp;
+                        var tempC = tempK - 273.15;
+                        var tempF = tempC * 9 / 5 + 32;
+                        var recommendation = getRecommendation(tempC);
+                        var windSpeed = data.wind.speed;
+                        var date = new Date(dateAhead.getTime() + (24 * 60 * 60 * 1000)).toLocaleDateString();
+
+                        $("#weather").text(`Date: ${date} | Temperature: ${tempC.toFixed(2)}°C / ${tempF.toFixed(2)}°F | Wind Speed: ${windSpeed.toFixed(2)} m/s | ${recommendation}`);
+
+                        resolve();
+                    } else {
+                        $("#weather").text("Weather data not available");
+                        resolve();
+                    }
+                }).fail(function () {
+                    $("#weather").text("Failed to fetch weather data");
+                    resolve();
+                });
+            });
+        }
+
+        function getRecommendation(tempC) {
+            var recommendation = "";
+
+            if (tempC < 0) {
+                recommendation = "Too cold! It's better to stay indoors.";
+            } else if (tempC >= 0 && tempC < 15) {
+                recommendation = "Cool weather. If you don't mind the chill, it's good for outdoor activities.";
+            } else if (tempC >= 15 && tempC < 30) {
+                recommendation = "Perfect! Great weather to be outdoors.";
+            } else {
+                recommendation = "Too hot! Better stay indoors or find someplace cool.";
+            }
+
+            return recommendation;
+        }
+
+        google.maps.event.addDomListener(window, 'load', initialize);
+    </script>
+</body>
+</html>

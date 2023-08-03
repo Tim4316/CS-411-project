@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Place Searches</title>
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBj_JgUi97U0czCWUO6OccZxQahvBJe9Oo&libraries=places"></script>
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <input id="lat" type="text" placeholder="Enter latitude">
+    <input id="lng" type="text" placeholder="Enter longitude">
+
+    <select id="preference">
+        <option value="bar">Bar</option>
+        <option value="cafe">Cafe</option>
+        <option value="casino">Casino</option>
+        <option value="museum">Museum</option>
+        <option value="park">Park</option>
+        <option value="restaurant">Restaurant</option>
+        <option value="shopping_mall">Shopping Mall</option>
+        <option value="supermarket">Supermarket</option>
+    </select>
+
+    <button onclick="searchPlace()">Search</button>
+    <div id="map"></div>
+    <ul id="places"></ul>
+
+    <script>
+        var map;
+        var service;
+        var infowindow;
+        var markers = [];  // Add this line
+
+        function initialize() {
+            var pyrmont = new google.maps.LatLng(-33.8666, 151.1958);
+
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: pyrmont,
+                zoom: 15
+            });
+
+            var request = {
+                location: pyrmont,
+                radius: '500',
+                types: ['store']
+            };
+
+            service = new google.maps.places.PlacesService(map);
+            service.nearbySearch(request, callback);
+        }
+
+        function callback(results, status) {
+            if (status == google.maps.places.PlacesServiceStatus.OK) {
+                for (var i = 0; i < results.length; i++) {
+                    var place = results[i];
+                    createMarker(results[i]);
+                    addToList(results[i]);
+                }
+            }
+        }
+
+        function createMarker(place) {
+            var marker = new google.maps.Marker({
+                map: map,
+                position: place.geometry.location
+            });
+
+            markers.push(marker);  // Add this line
+        }
+
+        function addToList(place) {
+            var ul = document.getElementById("places");
+            var li = document.createElement("li");
+            var text = document.createTextNode(
+                place.name + ' - Rating: ' + (place.rating || 'No rating') + ' - Address: ' + (place.vicinity || 'No address')
+            );
+            li.appendChild(text);
+            ul.appendChild(li);
+        }
+
+        function addToList(place) {
+            var ul = document.getElementById("places");
+            var li = document.createElement("li");
+
+            // Create a div for place name, make it bold and larger
+            var placeName = document.createElement("div");
+            placeName.style.fontWeight = "bold";
+            placeName.style.fontSize = "1.5em";
+            placeName.textContent = place.name;
+            li.appendChild(placeName);
+
+            // Create bullet points for rating and address
+            var rating = document.createElement("ul");
+            var ratingItem = document.createElement("li");
+            ratingItem.textContent = 'Rating: ' + (place.rating || 'No rating');
+            rating.appendChild(ratingItem);
+            li.appendChild(rating);
+
+            var address = document.createElement("ul");
+            var addressItem = document.createElement("li");
+            addressItem.textContent = 'Address: ' + (place.vicinity || 'No address');
+            address.appendChild(addressItem);
+            li.appendChild(address);
+
+            ul.appendChild(li);
+        }
+
+        function searchPlace() {
+            // Get latitude, longitude, and preference
+            var lat = document.getElementById('lat').value;
+            var lng = document.getElementById('lng').value;
+            var preference = document.getElementById('preference').value;
+
+            // Get new center and set map to center on this point
+            var location = new google.maps.LatLng(lat, lng);
+            map.setCenter(location);
+
+            // Empty the list of places
+            var ul = document.getElementById("places");
+            ul.innerHTML = '';
+
+            // Clear out the old markers.
+            markers.forEach(function (marker) {
+                marker.setMap(null);
+            });
+            markers = [];
+
+            // Make request to PlacesService
+            var request = {
+                location: location,
+                radius: '500',
+                types: [preference]
+            };
+            service.nearbySearch(request, callback);
+        }
+
+        google.maps.event.addDomListener(window, 'load', initialize);
+    </script>
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+<!-- AIzaSyBj_JgUi97U0czCWUO6OccZxQahvBJe9Oo -->
+<!-- boston: 42.3601 -71.0589 -->

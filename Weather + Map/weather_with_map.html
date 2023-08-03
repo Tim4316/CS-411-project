@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Travel Info</title>
+        <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBj_JgUi97U0czCWUO6OccZxQahvBJe9Oo&libraries=places&callback=initialize"></script>
+        <meta name="google-signin-scope" content="profile email">
+        <meta name="google-signin-client_id" content="695501266191-k0nrnoa66973qu1u1jf5vk3c55rvki8k.apps.googleusercontent.com">
+        <script src="https://apis.google.com/js/platform.js" async defer></script>
+        <script src="https://code.jquery.com/jquery-3.7.0.js"
+            integrity="sha256-JlqSTELeR4TLqP0OG9dxM7yDPqX1ox/HfgiSLBj8+kM=" crossorigin="anonymous">
+        </script>
+        
+        <style>
+            #map {
+                height: 400px;
+                width: 100%;
+            }
+            #user-info {
+                display: none;
+            }
+        </style>
+    </head>
+
+<body>
+    <div class="g-signin2" data-onsuccess="onSignIn"></div>
+    <div id="user-info">
+        <img id="user-pic" src="" alt="User profile picture">
+        <p id="user-name"></p>
+    </div>
+    <div id="map"></div>
+
+    <input id="city" type="text" placeholder="Enter city name">
+    <select id="preference">
+        <option value="bar">Bar</option>
+        <option value="cafe">Cafe</option>
+        <option value="casino">Casino</option>
+        <option value="museum">Museum</option>
+        <option value="park">Park</option>
+        <option value="restaurant">Restaurant</option>
+        <option value="shopping_mall">Shopping Mall</option>
+        <option value="supermarket">Supermarket</option>
+    </select>
+    <label for = "dateAhead">Date:</label>
+    <input id = "dateAhead" type = "date" min=""/>
+
+    <button onclick="searchPlace()">Search</button>
+
+    <div id="output">
+        <div id="weather"></div>
+        <ul id="places"></ul>
+    </div>
+
+    <script>
+        var apiKey = "98e68699085dbddbfb65f34ceb0906d8";
+        var map;
+        var service;
+        var infowindow;
+        var markers = [];
+        var city;
+
+        function initialize() {
+            var pyrmont = new google.maps.LatLng(42.3601, -71.0589);
+
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: pyrmont,
+                zoom: 15
+            });
+
+            var request = {
+                location: pyrmont,
+                radius: '500',
+                types: ['store']
+            };
+
+            service = new google.maps.places.PlacesService(map);
+            service.nearbySearch(request, callback);
+        }
+
+        function callback(results, status) {
+            if (status == google.maps.places.PlacesServiceStatus.OK) {
+                for (var i = 0; i < results.length; i++) {
+                    var place = results[i];
+                    createMarker(results[i]);
+                    addToList(results[i]);
+                }
+            }
+        }
+
+        function createMarker(place) {
+            var marker = new google.maps.Marker({
+                map: map,
+                position: place.geometry.location
+            });
+
+            markers.push(marker);
+        }
+        function createMarker(place) {
+            var marker = new google.maps.Marker({
+            map: map,
+            position: place.geometry.location
+            });
+
+            google.maps.event.addListener(marker, 'click', function() {
+            infowindow.setContent('<div><strong>' + place.name + '</strong><br>' +
+            'Place ID: ' + place.place_id + '<br>' +
+            place.vicinity + '</div>');
+            infowindow.open(map, this);
+            });
+            markers.push(marker);
+        }
+
+        function addToList(place) {
+            service.getDetails({placeId: place.place_id}, function(result, status) {
+                if (status != google.maps.places.PlacesServiceStatus.OK) {
+                    alert(status);
+                return;
+                }
+            var ul = document.getElementById("places");
+            var li = document.createElement("li");
+            var text = document.createTextNode(
+                result.name + ' - Rating: ' + (result.rating || 'No rating') + ' - Address: ' + (result.vicinity || 'No address'));
+            li.appendChild(text);
+    
+            if(result.website) {
+                var website = document.createElement("a");
+                website.href = result.website;
+                website.textContent = " Website";
+                li.appendChild(website);
+            }
+    
+            li.onclick = function() { displayPlaceDetails(result); }; // Adding an onclick event to the list item
+            ul.appendChild(li);
+            });
+        }
+
+        function callback(results, status) {
+            if (status == google.maps.places.PlacesServiceStatus.OK) {
+                for (var i = 0; i < results.length; i++) {
+                    createMarker(results[i]);
+                    addToList(results[i]);
+                }
+            }
+        }
+
+        function displayPlaceDetails(place) {
+            var details = `Name: ${place.name}\nAddress: ${place.formatted_address}\nRating: ${place.rating}`;
+            if (place.opening_hours) {
+                details += `\nOpen Now: ${place.opening_hours.open_now ? 'Yes' : 'No'}`;
+            }
+            if (place.website) {
+                 details += `\nWebsite: ${place.website}`;
+            }
+            alert(details);
+        }
+        
+        async function searchPlace() {
+            city = document.getElementById('city').value;
+            var preference = document.getElementById('preference').value;
+
+            var geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ 'address': city }, function (results, status) {
+                if (status == 'OK') {
+                    var location = results[0].geometry.location;
+                    map.setCenter(location);
+
+                    var ul = document.getElementById("places");
+                    ul.innerHTML = '';
+
+                    markers.forEach(function (marker) {
+                        marker.setMap(null);
+                    });
+                    markers = [];
+
+                    var request = {
+                        location: location,
+                        radius: '500',
+                        types: [preference]
+                    };
+                    (async () => {
+                        await fetchWeather();
+                        service.nearbySearch(request, callback);
+                    })();
+                
+                } else {
+                    alert('Geocode was not successful for the following reason: ' + status);
+                }
+            });
+        }
+
+        function fetchWeather() {
+            return new Promise(function(resolve, reject) {
+            var limit = "1";
+            var dateAhead = new Date($("#dateAhead").val());
+            var today = new Date();
+            var diffTime = Math.abs(dateAhead - today);
+            var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            $.ajax({
+            method: "GET",
+            url: `http://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=${limit}&appid=${apiKey}`,
+            }).done(function(data) {
+            if (data.length > 0) {
+                var lat = data[0].lat;
+                var lon = data[0].lon;
+
+            $.ajax({
+            method: "GET",
+            url: `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&exclude=current,minutely,hourly,alerts&appid=${apiKey}`,
+            }).done(function(weatherData) {
+            var forecastData = weatherData.daily;
+
+            if (forecastData.length > diffDays) {
+                var tempK = forecastData[diffDays - 1].temp.day;
+                var tempC = tempK - 273.15;
+                var tempF = tempC * 9 / 5 + 32;
+                var recommendation = getRecommendation(tempC);
+                var weatherCode = forecastData[diffDays - 1].weather[0].id;
+                var isRaining = (weatherCode >= 500 && weatherCode < 600);
+                var isSnowing = (weatherCode >= 600 && weatherCode < 700);
+
+                var recommendation = getRecommendation(tempC, isRaining, isSnowing);
+
+
+                if (isRaining || isSnowing) {
+                    $("#weather").text(`The temperature on ${dateAhead.toLocaleDateString()} will be ${tempC.toFixed(2)}°C or ${tempF.toFixed(2)}°F. ${recommendation}`);
+                } else {
+                    $("#weather").text(`The temperature on ${dateAhead.toLocaleDateString()} will be ${tempC.toFixed(2)}°C or ${tempF.toFixed(2)}°F.`);
+                }
+
+                    dateAhead.setDate(dateAhead.getDate() + 1);
+                    $("#weather").text(`The temperature on ${dateAhead.toLocaleDateString()} will be ${tempC.toFixed(2)}°C or ${tempF.toFixed(2)}°F. ${recommendation}`);
+                    resolve();
+                    } else {
+                    $("#weather").text("Forecast data for that date is not available");
+                    resolve();
+                    }
+                });
+                } else {
+                    $("#output").text("Invalid city name");
+                    resolve();
+                    }
+                });
+            });
+        }
+
+        function getRecommendation(tempC, isRaining, isSnowing) {
+            var recommendation = "";
+
+            if (isRaining) {
+                recommendation = "It's raining. It is not a good day to go outside.";
+            } else if (isSnowing) {
+                recommendation = "It's snowing. It is not a good day to go outside.";
+            } else {
+                if (tempC < 0) {
+                    recommendation = "Too cold! It's better to stay indoors.";
+                } else if (tempC >= 0 && tempC < 15) {
+                    recommendation = "Cool weather. If you don't mind the chill, it's good for outdoor activities.";
+                } else if (tempC >= 15 && tempC < 30) {
+                    recommendation = "Perfect! Great weather to be outdoors.";
+                } else {
+                    recommendation = "Too hot! Better stay indoors or find someplace cool.";
+                }
+            }
+
+            return recommendation;
+        }
+
+
+        google.maps.event.addDomListener(window, 'load', initialize);
+    </script>
+</body>
+
+</html>

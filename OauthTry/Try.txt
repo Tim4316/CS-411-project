@@ -1,0 +1,4 @@
+* We have included the trial version of our initial application for reference.
+* These files illustrate the iterative steps our team took during the brainstorming and development process that ultimately led to the completed version.
+* While it is not required to review these files, these show our development process, the various attempts we made, the efforts ,and continuous improvement our team put into refining the application.
+* If you are curious about our development process, we invite you to explore these files and witness the evolution of our work.

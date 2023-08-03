@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Place Searches</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBj_JgUi97U0czCWUO6OccZxQahvBJe9Oo&libraries=places"></script>
+    <meta name="google-signin-scope" content="profile email">
+    <meta name="google-signin-client_id" content="695501266191-k0nrnoa66973qu1u1jf5vk3c55rvki8k.apps.googleusercontent.com">
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
+
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+
+        #user-info {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="g-signin2" data-onsuccess="onSignIn"></div>
+    <div id="user-info">
+        <img id="user-pic" src="" alt="User profile picture">
+        <p id="user-name"></p>
+    </div>
+    <div id="map"></div>
+
+    <input id="lat" type="text" placeholder="Enter latitude">
+    <input id="lng" type="text" placeholder="Enter longitude">
+    <select id="preference">
+        <option value="bar">Bar</option>
+        <option value="cafe">Cafe</option>
+        <option value="casino">Casino</option>
+        <option value="museum">Museum</option>
+        <option value="park">Park</option>
+        <option value="restaurant">Restaurant</option>
+        <option value="shopping_mall">Shopping Mall</option>
+        <option value="supermarket">Supermarket</option>
+    </select>
+    <button onclick="searchPlace()">Search</button>
+    <ul id="places"></ul>
+
+    <script>
+        var map;
+        var service;
+        var infowindow;
+        var markers = [];
+
+        function onSignIn(googleUser) {
+            var profile = googleUser.getBasicProfile();
+            console.log("ID: " + profile.getId());
+            console.log('Full Name: ' + profile.getName());
+            console.log('Given Name: ' + profile.getGivenName());
+            console.log('Family Name: ' + profile.getFamilyName());
+            console.log("Image URL: " + profile.getImageUrl());
+            console.log("Email: " + profile.getEmail());
+
+            var id_token = googleUser.getAuthResponse().id_token;
+            console.log("ID Token: " + id_token);
+
+            // Display the user's profile information
+            document.getElementById('user-pic').src = profile.getImageUrl();
+            document.getElementById('user-name').textContent = 'Signed in: ' + profile.getName();
+            document.getElementById('user-info').style.display = 'block';
+        }
+
+        function initialize() {
+            var pyrmont = new google.maps.LatLng(42.3601, -71.0589);
+
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: pyrmont,
+                zoom: 15
+            });
+
+            var request = {
+                location: pyrmont,
+                radius: '500',
+                types: ['store']
+            };
+
+            service = new google.maps.places.PlacesService(map);
+            service.nearbySearch(request, callback);
+        }
+
+        function callback(results, status) {
+            if (status == google.maps.places.PlacesServiceStatus.OK) {
+                for (var i = 0; i < results.length; i++) {
+                    var place = results[i];
+                    createMarker(results[i]);
+                    addToList(results[i]);
+                }
+            }
+        }
+
+        function createMarker(place) {
+            var marker = new google.maps.Marker({
+                map: map,
+                position: place.geometry.location
+            });
+
+            markers.push(marker);
+        }
+
+        function addToList(place) {
+            var ul = document.getElementById("places");
+            var li = document.createElement("li");
+            var text = document.createTextNode(
+                place.name + ' - Rating: ' + (place.rating || 'No rating') + ' - Address: ' + (place.vicinity || 'No address')
+            );
+            li.appendChild(text);
+            ul.appendChild(li);
+        }
+
+        function searchPlace() {
+            var lat = document.getElementById('lat').value;
+            var lng = document.getElementById('lng').value;
+            var preference = document.getElementById('preference').value;
+
+            var location = new google.maps.LatLng(lat, lng);
+            map.setCenter(location);
+
+            var ul = document.getElementById("places");
+            ul.innerHTML = '';
+
+            markers.forEach(function (marker) {
+                marker.setMap(null);
+            });
+            markers = [];
+
+            var request = {
+                location: location,
+                radius: '500',
+                types: [preference]
+            };
+            service.nearbySearch(request, callback);
+        }
+
+        google.maps.event.addDomListener(window, 'load', initialize);
+    </script>
+</body>
+
+</html>

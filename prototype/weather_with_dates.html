@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset = "UTF-8">
+    <meta name = "viewport" content = "width=device-width, initial-scale=1.0">
+    <title>API Fetch</title>
+</head>
+
+
+<body>
+    <h1>
+        This is for city name to lon/lat, and then lon/lat + date to weather
+    </h1>
+
+    <label for = "city">City name:</label>
+    <input id = "city" type = "text" />
+
+    <label for = "dateAhead">Date:</label>
+    <input id = "dateAhead" type = "date" min=""/>
+
+    <button id = "submit">Submit</button>
+
+    <p id = "output"></p>
+    <p id = "weather"></p>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.js"
+        integrity="sha256-JlqSTELeR4TLqP0OG9dxM7yDPqX1ox/HfgiSLBj8+kM=" crossorigin="anonymous">
+    </script>
+
+    <script>
+        var apiKey = "98e68699085dbddbfb65f34ceb0906d8";
+
+        var today = new Date();
+        var dd = String(today.getDate()).padStart(2, '0');
+        var mm = String(today.getMonth() + 1).padStart(2, '0');
+        var yyyy = today.getFullYear();
+
+        today = yyyy + '-' + mm + '-' + dd;
+
+        document.getElementById("dateAhead").min = today;
+
+        $("#submit").click(function () {
+            var city = $("#city").val();
+            var limit = "1";
+            var dateAhead = new Date($("#dateAhead").val());
+            var todayDate = new Date(today);
+            var diffTime = Math.abs(dateAhead - todayDate);
+            var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            $.ajax({
+                method: "GET",
+                url: `http://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=${limit}&appid=${apiKey}`,
+            })
+                .done(function (data) {
+                    if (data.length > 0) {
+                        var lat = data[0].lat;
+                        var lon = data[0].lon;
+                        $("#output").text(`Latitude: ${lat}, Longitude: ${lon}`);
+                        
+                        $.ajax({
+                            method: "GET",
+                            url: `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&exclude=current,minutely,hourly,alerts&appid=${apiKey}`,
+                        })
+                            .done(function (weatherData) {
+                                var forecastData = weatherData.daily;
+
+                                if (forecastData.length > diffDays) {
+                                    var tempK = forecastData[diffDays - 1].temp.day;
+                                    var tempC = tempK - 273.15;
+                                    var tempF = tempC * 9 / 5 + 32;
+
+                                    dateAhead.setDate(dateAhead.getDate() + 1);
+                                    $("#weather").text(`The temperature on ${dateAhead.toLocaleDateString()} will be ${tempC.toFixed(2)}°C or ${tempF.toFixed(2)}°F`);
+                                } else {
+                                    $("#weather").text("Forecast data for that date is not available");
+                                }
+                            });
+                    } 
+                    else {
+                        $("#output").text("Invalid city name");
+                    }
+                });
+        });
+    </script>
+
+</body>
+
+</html>

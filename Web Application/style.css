@@ -1,0 +1,104 @@
+﻿/* Colors */
+:root {
+    --primary-color: #d9a393;
+    --secondary-color: #FFC107;
+    --background-color: #F5F5F5;
+}
+
+/* Typography */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: var(--background-color);
+    margin: 0;
+    padding: 0;
+}
+
+h1 {
+    font-size: 2.5em;
+    color: var(--primary-color);
+    margin-top: 0;
+    margin-bottom: 1em;
+}
+
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+/* Layout */
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1em;
+}
+
+/* Form */
+form {
+    margin-bottom: 1em;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+input[type="text"],
+select {
+    flex: 1;
+    padding: 0.5em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-bottom: 0.5em;
+}
+
+label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+    flex: 1;
+}
+
+button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 1em 2em; /* Updated padding to make the button larger */
+    cursor: pointer;
+    flex: 1;
+}
+
+/* Map */
+#map {
+    height: 400px;
+    width: 100%;
+    margin-bottom: 1em;
+}
+
+/* User Info */
+#user-info {
+    display: none;
+    margin-bottom: 1em;
+}
+
+    #user-info p {
+        margin: 0;
+    }
+
+/* Weather and Places */
+#output {
+    margin-bottom: 1em;
+}
+
+#weather {
+    font-weight: bold;
+    margin-bottom: 0.5em;
+}
+
+#places li {
+    margin-bottom: 0.5em;
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+    .container {
+        max-width: 90%;
+    }
+}

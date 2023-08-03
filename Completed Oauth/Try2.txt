@@ -1,0 +1,4 @@
+* We have included the improved version of our trial version for reference.
+* These files showcase the iterative steps our team took during the brainstorming and development process, which ultimately resulted in the completed version.
+* Although reviewing these files is not mandatory, they provide insights into our development process, the numerous attempts we made, and the consistent efforts our team put into refining the application.
+* If you are curious about our development process, we invite you to explore these files and witness the evolution of our work.
